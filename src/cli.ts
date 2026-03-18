@@ -198,9 +198,7 @@ class TsToZod extends Command {
       // fallback to check module as moduleResolution has the required default values for these modules
       explicitFileExtImports =
         ["node16", "nodenext"].includes(moduleResolution || "") ||
-        ["node16", "node18", "node20", "nodenext"].includes(
-          tsConfig.compilerOptions.module
-        );
+        ["node16", "node18", "node20", "nodenext"].includes(module || "");
     } catch (error) {
       this.log(
         `Unable to read tsconfig.json to determine moduleResolution: ${error}`
