@@ -171,22 +171,39 @@ class TsToZod extends Command {
     const fileConfig = await this.loadFileConfig(config, flags);
 
     // Read `tsconfig.json` to find `moduleResolution` value
+    const configFilename = "tsconfig.json";
     let explicitFileExtImports = false;
     try {
       const rawTsConfig = await readFile(
-        join(process.cwd(), "tsconfig.json"),
+        join(process.cwd(), configFilename),
         "utf-8"
       );
+      const parsedTsConfig = ts.parseConfigFileTextToJson(
+        configFilename,
+        rawTsConfig
+      );
+
       const tsConfigSchema = z.object({
         compilerOptions: z.object({
-          moduleResolution: z.string(),
+          module: z.string().optional(),
+          moduleResolution: z.string().optional(),
         }),
       });
-      const tsConfig = z.parse(tsConfigSchema, JSON.parse(rawTsConfig));
-      explicitFileExtImports = ["node16", "nodenext"].includes(
-        tsConfig.compilerOptions.moduleResolution
+      const tsConfig = z.parse(tsConfigSchema, parsedTsConfig.config);
+
+      const module = tsConfig.compilerOptions.module?.toLowerCase();
+      const moduleResolution =
+        tsConfig.compilerOptions.moduleResolution?.toLowerCase();
+
+      // fallback to check module as moduleResolution has the required default values for these modules
+      explicitFileExtImports =
+        ["node16", "nodenext"].includes(moduleResolution || "") ||
+        ["node16", "node18", "node20", "nodenext"].includes(module || "");
+    } catch (error) {
+      this.log(
+        `Unable to read tsconfig.json to determine moduleResolution: ${error}`
       );
-    } catch {}
+    }
 
     const ioMappings = getInputOutputMappings(config);
     const tasks = new Listr<void>([]);
